@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import struct
 import time
 import socket
@@ -39,7 +40,7 @@ def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=
            '}') % (',\n'.join(metrics_data))
     
     data_len = struct.pack('<Q', len(json_data))
-    packet = 'ZBXD\1' + data_len + json_data
+    packet = 'ZBXD\1'.encode('ascii') + data_len + json_data.encode('ascii')
     try:
         zabbix = socket.socket()
         zabbix.connect((zabbix_host, zabbix_port))
@@ -48,13 +49,13 @@ def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=
         zabbix.sendall(packet)
         # get response header from zabbix
         resp_hdr = _recv_all(zabbix, 13)
-        if not resp_hdr.startswith('ZBXD\1') or len(resp_hdr) != 13:
+        if not resp_hdr.startswith('ZBXD\1'.encode('ascii')) or len(resp_hdr) != 13:
             logger.error('Wrong zabbix response')
             return False
         resp_body_len = struct.unpack('<Q', resp_hdr[5:])[0]
         # get response body from zabbix
         resp_body = zabbix.recv(resp_body_len)
-        resp = json.loads(resp_body)
+        resp = json.loads(resp_body.decode())
         logger.debug('Got response from Zabbix: %s' % resp)
         logger.info(resp.get('info'))
         if resp.get('response') != 'success':
@@ -75,7 +76,7 @@ def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=
 logger = logging.getLogger('zbxsender') 
 
 def _recv_all(sock, count):
-    buf = ''
+    buf = b''
     while len(buf)<count:
         chunk = sock.recv(count-len(buf))
         if not chunk:
