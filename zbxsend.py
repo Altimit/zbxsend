@@ -27,12 +27,11 @@ def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=
     # Zabbix has very fragile JSON parser, and we cannot use json to dump whole packet
     metrics_data = []
     for m in metrics:
-        clock = m.clock or time.time()
         metrics_data.append(('\t\t{\n'
                              '\t\t\t"host":%s,\n'
                              '\t\t\t"key":%s,\n'
                              '\t\t\t"value":%s,\n'
-                             '\t\t\t"clock":%s}') % (j(m.host), j(m.key), j(m.value), clock))
+                             '\t\t\t"clock":%s}') % (j(m.host), j(m.key), j(m.value), j(m.clock)))
     json_data = ('{\n'
            '\t"request":"sender data",\n'
            '\t"data":[\n%s]\n'
@@ -86,4 +85,4 @@ def _recv_all(sock, count):
     
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    send_to_zabbix([Metric('localhost', 'bucks_earned', 99999)], 'localhost', 10051)
+    send_to_zabbix([Metric('localhost', 'bucks_earned', 99999, 1438292786)], 'localhost', 10051)
