@@ -22,22 +22,26 @@ class Metric(object):
         return 'Metric(%r, %r, %r, %r)' % (self.host, self.key, self.value, self.clock)
 
 def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=15):
-    """Send set of metrics to Zabbix server.""" 
-    
-    j = json.dumps
-    # Zabbix has very fragile JSON parser, and we cannot use json to dump whole packet
-    metrics_data = []
+    """Send set of metrics to Zabbix server."""
+
+    data = []
     for m in metrics:
-        metrics_data.append(('\t\t{\n'
-                             '\t\t\t"host":%s,\n'
-                             '\t\t\t"key":%s,\n'
-                             '\t\t\t"value":%s,\n'
-                             '\t\t\t"clock":%s}') % (j(m.host), j(m.key), j(m.value), j(m.clock)))
-    json_data = ('{\n'
-           '\t"request":"sender data",\n'
-           '\t"data":[\n%s]\n'
-           '}') % (',\n'.join(metrics_data))
-    
+        item = {
+            "host": m.host,
+            "key": m.key,
+            "value": m.value,
+        }
+        if m.clock:
+            item["clock"] = m.clock
+        data.append(item)
+
+    sender_data = {
+        "request": "sender data",
+        "data": data,
+    }
+
+    json_data = json.dumps(sender_data)
+
     data_len = struct.pack('<Q', len(json_data))
     packet = 'ZBXD\1'.encode('ascii') + data_len + json_data.encode('ascii')
     try:
@@ -71,8 +75,7 @@ def send_to_zabbix(metrics, zabbix_host='127.0.0.1', zabbix_port=10051, timeout=
         zabbix.close()
 
 
-
-logger = logging.getLogger('zbxsender') 
+logger = logging.getLogger('zbxsender')
 
 def _recv_all(sock, count):
     buf = b''
@@ -83,7 +86,7 @@ def _recv_all(sock, count):
         buf += chunk
     return buf
 
-    
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     send_to_zabbix([Metric('localhost', 'bucks_earned', 99999, 1438292786)], 'localhost', 10051)
